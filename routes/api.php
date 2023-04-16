@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('v1/vehicle_specifications',[VehicleController::class,'get_vehicle_specifications']);
 Route::get('v1/vehicle_market_valuation',[VehicleController::class,'get_vehicle_market_valuation']);
+Route::get('v1/vehicle_ownership_cost',[VehicleController::class,'get_vehicle_ownership_cost']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
