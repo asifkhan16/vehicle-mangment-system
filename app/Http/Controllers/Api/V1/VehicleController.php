@@ -3,18 +3,27 @@
 namespace App\Http\Controllers\Api\V1;
 
 use GuzzleHttp\Client;
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use App\Models\VehicleImage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class VehicleController extends Controller
 {
     public function get_vehicle_specifications(Request $request){
-        // return $request->vin;
+        $validator = Validator::make($request->all(),[
+            'vin' => 'string|required'
+        ]);
 
-        $vehical_data = Vehicle::where('vin',$request->vin)->first();
-        if($vehical_data){
-            return SuccessResponse($vehical_data);
+        if($validator->fails()){
+            return ErrorResponse($validator->errors()->first());
+        }
+
+        $vehical = Vehicle::where('vin',$request->vin)->first();
+        if($vehical){
+            return SuccessResponse($vehical);
         }
 
         $client = new Client(['base_uri' => 'https://specifications.vinaudit.com/v3/']);
@@ -33,8 +42,6 @@ class VehicleController extends Controller
         if(!$vehical_data->success){
             return $vehical_data->error;
         }
-
-        return SuccessResponse($vehical_data);
 
         $vehical = Vehicle::create([
             'vin' => $request->vin,
@@ -73,17 +80,21 @@ class VehicleController extends Controller
             "delivery_charges" => $vehical_data->attributes->delivery_charges,
             "manufacturer_suggested_retail_price" => $vehical_data->attributes->manufacturer_suggested_retail_price
         ]);
-        return $vehical_data;
 
+        $vehical_images = [];
 
-        $result = $response->getBody();
+        foreach ($vehical_data->photos as $image) {
+            array_push($vehical_images,[
+                'vehicle_id' => $vehical->id,
+                'image_url' => $image->url,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now()
+            ]);
+        }
 
-        return $response->getBody();
+        VehicleImage::insert($vehical_images);
 
-        return response()->json($response->getBody());
+        return SuccessResponse($vehical);
         
-        //https://specifications.vinaudit.com/v3/specifications?
-        //key=0BY2VDKPO9RUND&format=xml&
-        //include=attributes,equipment,colors,recalls,warranties,photos&vin=WBS8M9C52J5J78248
     }
 }
